@@ -1253,9 +1253,12 @@ async function loadAllTasks(forceRefresh = false) {
       !HIDDEN_LISTS.includes(list.displayName.toLowerCase().trim())
     );
 
-    // Load lists one at a time with retry logic for 429 rate limiting
+    // Only load tasks for the 7 people shown in overview
+    const listsToLoad = taskLists.filter(l =>
+      OVERVIEW_PEOPLE.includes(l.displayName.toLowerCase().trim())
+    );
     allTasks = [];
-    for (const list of taskLists) {
+    for (const list of listsToLoad) {
       let loaded = false;
       for (let attempt = 1; attempt <= 5; attempt++) {
         try {
@@ -1360,6 +1363,47 @@ const OPERATOR_VERIFIER_PIN = '308';
 const SELF_PIN_PEOPLE = ['kathy', 'marco'];
 const SELF_VERIFIER_PIN = '0070';
 
+function getTodayStr() {
+  const now = new Date();
+  return now.getFullYear() + '-' +
+    String(now.getMonth() + 1).padStart(2, '0') + '-' +
+    String(now.getDate()).padStart(2, '0');
+}
+
+function shouldShowTask(task) {
+  const todayStr = getTodayStr();
+
+  // Recurring tasks — only show on their scheduled days
+  if (task.recurrence && task.recurrence.pattern) {
+    const pattern = task.recurrence.pattern;
+    const today = new Date();
+    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const todayName = dayNames[today.getDay()];
+    if (pattern.type === 'weekly' && pattern.daysOfWeek && pattern.daysOfWeek.length > 0) {
+      return pattern.daysOfWeek.includes(todayName);
+    }
+    if (pattern.type === 'daily') return true;
+    return true; // other recurrence types always show
+  }
+
+  // Has a due date — only show if due today or earlier
+  if (task.dueDateTime && task.dueDateTime.dateTime) {
+    const dueDateStr = task.dueDateTime.dateTime.substring(0, 10);
+    return dueDateStr <= todayStr;
+  }
+
+  // No due date — show if created today or earlier
+  if (task.createdDateTime) {
+    const created = new Date(task.createdDateTime);
+    const createdStr = created.getFullYear() + '-' +
+      String(created.getMonth() + 1).padStart(2, '0') + '-' +
+      String(created.getDate()).padStart(2, '0');
+    return createdStr <= todayStr;
+  }
+
+  return true;
+}
+
 function renderTasks() {
   const grid = document.getElementById('task-grid');
 
@@ -1368,7 +1412,7 @@ function renderTasks() {
     grid.innerHTML = renderOverview();
   } else {
     grid.classList.add('single-list');
-    const filtered = allTasks.filter(t => t.listId === currentFilter && t.status !== 'completed' && localChecked[t.id] !== 'verified');
+    const filtered = allTasks.filter(t => t.listId === currentFilter && t.status !== 'completed' && localChecked[t.id] !== 'verified' && shouldShowTask(t));
     if (filtered.length === 0) {
       grid.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><p>No tasks here!</p></div>`;
       return;
@@ -1401,7 +1445,7 @@ function renderOverview() {
       return;
     }
 
-    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed');
+    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed' && shouldShowTask(t));
     const count = tasks.length;
     const checkedCount = tasks.filter(t => !!localChecked[t.id]).length;
 
