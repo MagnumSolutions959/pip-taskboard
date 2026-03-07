@@ -1545,7 +1545,7 @@ function escHtml(str) {
 
 function updateStats() {
   const base = currentFilter === 'all' ? allTasks : allTasks.filter(t => t.listId === currentFilter);
-  const visible = base.filter(t => t.status !== 'completed');
+  const visible = base.filter(t => t.status !== 'completed' && shouldShowTask(t) && localChecked[t.id] !== 'verified');
   const total = visible.length;
   const done = visible.filter(t => !!localChecked[t.id]).length;
   const remaining = total - done;
