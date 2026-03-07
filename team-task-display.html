@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team Task Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --surface2: #1a1f2b;
+    --border: #252c3a;
+    --accent: #00e5a0;
+    --accent2: #0098ff;
+    --warn: #ff6b35;
+    --text: #e8edf5;
+    --muted: #5a6478;
+    --done-bg: #0f1a14;
+    --done-text: #2a4a35;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Ambient background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -30%;
+    left: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(ellipse, rgba(0,229,160,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    bottom: -20%;
+    right: -10%;
+    width: 50%;
+    height: 50%;
+    background: radial-gradient(ellipse, rgba(0,152,255,0.04) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    background: var(--bg);
+  }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 60px 72px;
+    text-align: center;
+    max-width: 520px;
+    width: 90%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .login-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+
+  .login-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3.5rem;
+    letter-spacing: 0.08em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+  }
+
+  .login-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    font-weight: 300;
+    margin-bottom: 40px;
+    letter-spacing: 0.04em;
+  }
+
+  .ms-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: #2a7de1;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 16px 32px;
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .ms-btn:hover { background: #1a6dd1; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(42,125,225,0.3); }
+  .ms-btn:active { transform: translateY(0); }
+
+  .ms-btn svg { width: 20px; height: 20px; }
+
+  /* ── MAIN APP ── */
+  #app { display: none; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px 48px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,12,16,0.8);
+    backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+  }
+
+  .app-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.2rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+
+  .app-title span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 300;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .progress-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .progress-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .refresh-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--muted);
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .refresh-btn:hover { color: var(--text); border-color: var(--accent); }
+  .refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .user-avatar {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--bg);
+  }
+
+  /* List selector */
+  #list-bar {
+    padding: 20px 48px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .list-tab {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .list-tab:hover { color: var(--text); border-color: var(--muted); }
+  .list-tab.active {
+    background: rgba(0,229,160,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Main content */
+  main {
+    padding: 40px 48px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Stats row */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .stat-card.s1::after { background: var(--accent); }
+  .stat-card.s2::after { background: var(--accent2); }
+  .stat-card.s3::after { background: var(--warn); }
+  .stat-card.s4::after { background: #a855f7; }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 8px;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.8rem;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+  .s1 .stat-value { color: var(--accent); }
+  .s2 .stat-value { color: var(--accent2); }
+  .s3 .stat-value { color: var(--warn); }
+  .s4 .stat-value { color: #a855f7; }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 28px;
+    margin-bottom: 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .progress-label { font-size: 0.85rem; color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+  .progress-track {
+    flex: 1;
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 0 12px rgba(0,229,160,0.4);
+  }
+
+  .progress-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--accent);
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* Task grid */
+  #task-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  #task-grid.single-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  }
+
+  /* Task card */
+  .task-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+    animation: cardIn 0.4s ease both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .task-card:hover {
+    border-color: rgba(0,229,160,0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.3);
+  }
+
+  .task-card.done {
+    background: var(--done-bg);
+    border-color: #1a2a1f;
+  }
+  .task-card.done:hover {
+    border-color: rgba(0,229,160,0.2);
+  }
+
+  /* Checkbox */
+  .task-check {
+    width: 24px; height: 24px;
+    border-radius: 6px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .task-card:not(.done):hover .task-check {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,160,0.1);
+  }
+
+  .task-card.done .task-check {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .task-check svg {
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.2s;
+  }
+  .task-card.done .task-check svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .task-body { flex: 1; min-width: 0; }
+
+  .task-title {
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text);
+    transition: color 0.2s;
+    word-break: break-word;
+  }
+
+  .task-card.done .task-title {
+    color: var(--done-text);
+    text-decoration: line-through;
+    text-decoration-color: #2a4a35;
+  }
+
+  .task-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .task-list-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .task-due {
+    font-size: 0.75rem;
+    color: var(--warn);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* Done shine effect */
+  .task-card.done::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(0,229,160,0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+
+  /* Section headers */
+  .section-header {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin: 32px 0 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    grid-column: 1 / -1;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Loading state */
+  #loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px;
+    grid-column: 1 / -1;
+    gap: 16px;
+  }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .loading-text { color: var(--muted); font-size: 0.9rem; }
+
+  /* Empty state */
+  .empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+  }
+
+  .empty-state .empty-icon { font-size: 3rem; margin-bottom: 16px; }
+  .empty-state p { font-size: 1rem; }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 14px 24px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    z-index: 200;
+    pointer-events: none;
+    box-shadow: 0 8px 32px rgba(0,229,160,0.15);
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* Clock */
+  #clock {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  /* Error */
+  .error-box {
+    background: rgba(255,107,53,0.08);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 12px;
+    padding: 20px 24px;
+    color: var(--warn);
+    font-size: 0.9rem;
+    grid-column: 1/-1;
+    line-height: 1.6;
+  }
+
+  /* Person sections for All Lists view */
+  .person-section {
+    grid-column: 1 / -1;
+    margin-bottom: 8px;
+  }
+
+  .person-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    border-bottom: 2px solid var(--accent);
+  }
+
+  .person-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .person-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.3rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+    flex: 1;
+  }
+
+  .person-count {
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.3);
+    color: var(--accent);
+    border-radius: 100px;
+    padding: 4px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .person-tasks {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .person-tasks .task-card {
+    border-radius: 0;
+    border: none;
+    border-right: none;
+    margin: 0;
+    animation: none;
+    background: var(--surface);
+  }
+
+  .person-tasks .task-card:hover {
+    background: var(--surface2);
+    transform: none;
+    box-shadow: none;
+  }
+
+  /* ── OVERVIEW DASHBOARD ── */
+  .overview-date {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .overview-columns {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    align-items: start;
+  }
+
+  .overview-col {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: cardIn 0.4s ease both;
+  }
+
+  .overview-col-header {
+    padding: 14px 16px;
+    background: var(--surface2);
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .overview-avatar {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    color: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .overview-col-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.1em;
+    color: var(--text);
+  }
+
+  .overview-col-count {
+    background: rgba(0,229,160,0.1);
+    border: 1px solid rgba(0,229,160,0.3);
+    color: var(--accent);
+    border-radius: 100px;
+    padding: 3px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .overview-col-tasks {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 80px;
+  }
+
+  .col-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.8rem;
+    padding: 20px 10px;
+  }
+
+  /* Overview task cards */
+  .ov-task {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: cardIn 0.3s ease both;
+  }
+
+  .ov-task:hover {
+    border-color: rgba(0,229,160,0.4);
+    background: rgba(0,229,160,0.05);
+  }
+
+
+
+  .ov-check {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .ov-body { flex: 1; min-width: 0; }
+
+  .ov-title {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  .ov-due {
+    font-size: 0.7rem;
+    color: var(--warn);
+    margin-top: 4px;
+  }
+
+  /* Two-checkbox styles */
+  .ov-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .ov-check-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+  }
+
+  .ov-check-wrap.ov-check-disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .ov-check-label {
+    font-size: 0.58rem;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+
+  .ov-check {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    background: transparent;
+  }
+
+  .ov-check svg { opacity: 0; transition: opacity 0.2s; }
+  .ov-check.ov-check-on { background: var(--accent2); border-color: var(--accent2); box-shadow: 0 0 8px rgba(0,152,255,0.4); }
+  .ov-check.ov-check-on svg { opacity: 1; }
+  .ov-check.ov-check-verified { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(0,229,160,0.4); }
+  .ov-check.ov-check-verified svg { opacity: 1; }
+  .ov-check-wrap:hover .ov-check:not(.ov-check-on):not(.ov-check-verified) { border-color: var(--accent2); }
+
+  .ov-task { display: flex; align-items: flex-start; gap: 10px; }
+  .ov-task.ov-operator-done { background: rgba(0,152,255,0.06); border-color: rgba(0,152,255,0.2); }
+  .ov-task.ov-verified { background: var(--done-bg); border-color: #1a2a1f; opacity: 0.75; }
+  .ov-title-done { text-decoration: line-through; color: var(--done-text) !important; }
+
+  /* PIN Modal */
+  #pin-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pin-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(6px);
+  }
+
+  .pin-box {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 48px;
+    text-align: center;
+    min-width: 340px;
+    z-index: 1001;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+
+  .pin-box::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 20px 20px 0 0;
+  }
+
+  .pin-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+
+  .pin-task {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+    line-height: 1.4;
+  }
+
+  .pin-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  .pin-input {
+    width: 160px;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 1.8rem;
+    font-family: 'Bebas Neue', sans-serif;
+    letter-spacing: 0.3em;
+    text-align: center;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .pin-input:focus { border-color: var(--accent); }
+
+  .pin-error {
+    color: var(--warn);
+    font-size: 0.8rem;
+    min-height: 20px;
+    margin-top: 8px;
+  }
+
+  .pin-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+
+  .pin-btn-cancel {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pin-btn-cancel:hover { color: var(--text); }
+
+  .pin-btn-submit {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    color: var(--bg);
+    border-radius: 8px;
+    padding: 10px 28px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pin-btn-submit:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-6px); }
+    80% { transform: translateX(6px); }
+  }
+
+  @media (max-width: 900px) {
+    header { padding: 16px 24px; }
+    main { padding: 24px; }
+    #list-bar { padding: 14px 24px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .overview-columns { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">TASK BOARD</div>
+    <div class="login-sub">Sign in once with your Microsoft account to display your team tasks</div>
+    <button class="ms-btn" onclick="signIn()">
+      <svg viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+        <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+        <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+        <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+      </svg>
+      Sign in with Microsoft
+    </button>
+    <p style="margin-top:24px; color: var(--muted); font-size:0.8rem;">Your credentials are never stored. Tasks sync directly from Microsoft To Do.</p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <div class="app-title">TASK <span>BOARD</span></div>
+      <div class="header-meta" id="last-updated">Loading...</div>
+    </div>
+    <div class="header-right">
+      <div id="clock"></div>
+      <div class="progress-pill">
+        <div class="progress-dot"></div>
+        <span id="header-progress">0 / 0 done</span>
+      </div>
+      <button class="refresh-btn" onclick="refreshTasks()" id="refresh-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <span id="user-name"></span>
+      </div>
+      <button class="refresh-btn" onclick="signOut()" title="Sign out and switch account" style="color:var(--warn);border-color:rgba(255,107,53,0.3)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Switch Account
+      </button>
+    </div>
+  </header>
+
+  <div id="list-bar">
+    <button class="list-tab active" onclick="filterList('all', this)">All Lists</button>
+  </div>
+
+  <main>
+    <div class="stats-row">
+      <div class="stat-card s1">
+        <div class="stat-label">Total Tasks</div>
+        <div class="stat-value" id="stat-total">—</div>
+      </div>
+      <div class="stat-card s2">
+        <div class="stat-label">Completed</div>
+        <div class="stat-value" id="stat-done">—</div>
+      </div>
+      <div class="stat-card s3">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value" id="stat-remaining">—</div>
+      </div>
+      <div class="stat-card s4">
+        <div class="stat-label">Lists</div>
+        <div class="stat-value" id="stat-lists">—</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-label">OVERALL PROGRESS</div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-pct" id="progress-pct">0%</div>
+    </div>
+
+    <div id="task-grid">
+      <div id="loading">
+        <div class="spinner"></div>
+        <div class="loading-text">Loading your tasks...</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────
+const CLIENT_ID = '65f06016-0505-4d5b-916e-e8df74029927';
+const TENANT_ID = '962891de-90b7-4b65-b82e-8c41212fb7ca';
+const REDIRECT_URI = 'https://pip-taskboard.netlify.app/team-task-display.html';
+const SCOPES = 'Tasks.ReadWrite User.Read';
+
+// ── HIDDEN LISTS (not shown to operators) ────────────────
+const HIDDEN_LISTS = ['christine','lee','maduni','escalation','smitha','task bank','flagged emails','flagged emeils'];
+
+// ── STATE ────────────────────────────────────────────────
+let allTasks = [];
+let taskLists = [];
+let localChecked = {}; // local-only checkmarks, never synced to M365
+let currentFilter = 'all';
+let accessToken = null;
+
+// ── CLOCK ────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── AUTH ─────────────────────────────────────────────────
+function getAuthUrl() {
+  const params = new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'token',
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPES,
+    response_mode: 'fragment',
+    nonce: Math.random().toString(36).slice(2),
+    login_hint: 'pipleth@pip-international.com',
+    prompt: 'login' // always force fresh login, ignores TV's saved session
+  });
+  return `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/authorize?${params}`;
+}
+
+function signIn() {
+  window.location.href = getAuthUrl();
+}
+
+function parseHashToken() {
+  const hash = window.location.hash.substring(1);
+  const params = new URLSearchParams(hash);
+  const token = params.get('access_token');
+  const expiresIn = params.get('expires_in');
+  if (token && expiresIn) {
+    const expiry = Date.now() + (parseInt(expiresIn) * 1000);
+    try { localStorage.setItem('tb_tok', token); localStorage.setItem('tb_exp', expiry); } catch(e) {}
+    try { sessionStorage.setItem('tb_tok', token); sessionStorage.setItem('tb_exp', expiry); } catch(e) {}
+    document.cookie = `tb_tok=${encodeURIComponent(token)};max-age=${expiresIn};path=/;SameSite=Lax`;
+    document.cookie = `tb_exp=${expiry};max-age=${expiresIn};path=/;SameSite=Lax`;
+  }
+  return token;
+}
+
+function getSavedToken() {
+  const now = Date.now();
+  const buf = 3 * 60 * 1000; // 3 min buffer
+
+  const sources = [
+    () => ({ t: localStorage.getItem('tb_tok'), e: parseInt(localStorage.getItem('tb_exp') || 0) }),
+    () => ({ t: sessionStorage.getItem('tb_tok'), e: parseInt(sessionStorage.getItem('tb_exp') || 0) }),
+    () => {
+      const tm = document.cookie.match(/tb_tok=([^;]+)/);
+      const em = document.cookie.match(/tb_exp=([^;]+)/);
+      return { t: tm ? decodeURIComponent(tm[1]) : null, e: em ? parseInt(em[1]) : 0 };
+    }
+  ];
+
+  for (const src of sources) {
+    try {
+      const { t, e } = src();
+      if (t && e && now < e - buf) return t;
+    } catch(err) {}
+  }
+  return null;
+}
+
+async function init() {
+  // 1. Fresh token from Microsoft redirect
+  const hashToken = parseHashToken();
+  if (hashToken) {
+    accessToken = hashToken;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    showApp();
+    await loadUserInfo();
+    await loadAllTasks();
+    return;
+  }
+
+  // 2. Saved token
+  const savedToken = getSavedToken();
+  if (savedToken) {
+    accessToken = savedToken;
+    showApp();
+    await loadUserInfo();
+    await loadAllTasks();
+    return;
+  }
+
+  // 3. Auto-redirect to Microsoft login — no button needed
+  document.getElementById('login-screen').innerHTML = `
+    <div class="login-card">
+      <div class="login-logo">TASK BOARD</div>
+      <div class="login-sub">Connecting to Microsoft 365...</div>
+      <div style="width:40px;height:40px;border:3px solid #252c3a;border-top-color:#00e5a0;border-radius:50%;animation:spin 0.8s linear infinite;margin:24px auto;"></div>
+    </div>`;
+  setTimeout(() => { window.location.href = getAuthUrl(); }, 1500);
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ── GRAPH API ────────────────────────────────────────────
+async function graphGet(endpoint) {
+  const res = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  if (!res.ok) throw new Error(`Graph error: ${res.status} ${res.statusText}`);
+  return res.json();
+}
+
+async function graphPatch(endpoint, body) {
+  const res = await fetch(`https://graph.microsoft.com/v1.0${endpoint}`, {
+    method: 'PATCH',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`Graph patch error: ${res.status}`);
+  return res.json();
+}
+
+async function loadUserInfo() {
+  try {
+    const me = await graphGet('/me');
+    const name = me.displayName || me.userPrincipalName || 'User';
+    document.getElementById('user-name').textContent = name;
+    document.getElementById('user-avatar').textContent = name.charAt(0).toUpperCase();
+  } catch(e) {
+    console.warn('Could not load user info', e);
+  }
+}
+
+async function loadAllTasks(forceRefresh = false) {
+  const grid = document.getElementById('task-grid');
+  
+  // Use cached data if available and less than 10 minutes old
+  if (!forceRefresh) {
+    try {
+      const cached = localStorage.getItem('tb_tasks_cache');
+      const cachedTime = parseInt(localStorage.getItem('tb_tasks_time') || '0');
+      if (cached && Date.now() - cachedTime < 30 * 60 * 1000) {
+        const { tasks, lists } = JSON.parse(cached);
+        allTasks = tasks;
+        taskLists = lists;
+        renderListTabs();
+        renderTasks();
+        updateStats();
+        document.getElementById('last-updated').textContent =
+          'Updated ' + new Date(cachedTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' (cached)';
+        return;
+      }
+    } catch(e) {}
+  }
+
+  grid.innerHTML = `<div id="loading"><div class="spinner"></div><div class="loading-text">Loading task lists...</div></div>`;
+
+  try {
+    // Get all task lists
+    const listsData = await graphGet('/me/todo/lists');
+    // Filter out hidden lists
+    taskLists = (listsData.value || []).filter(list =>
+      !HIDDEN_LISTS.includes(list.displayName.toLowerCase().trim())
+    );
+
+    // Load lists one at a time with retry logic for 429 rate limiting
+    allTasks = [];
+    for (const list of taskLists) {
+      let loaded = false;
+      for (let attempt = 1; attempt <= 5; attempt++) {
+        try {
+          const delay = attempt === 1 ? 1000 : attempt * 3000; // longer wait on retries
+          await new Promise(r => setTimeout(r, delay));
+          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200`);
+          const tasks = (data.value || []).map(t => ({ ...t, listId: list.id, listName: list.displayName }));
+          allTasks = allTasks.concat(tasks);
+          loaded = true;
+          break;
+        } catch(e) {
+          if (e.message.includes('429')) {
+            console.warn(`Rate limited on ${list.displayName}, attempt ${attempt}/5, waiting...`);
+          } else {
+            console.warn(`Error loading ${list.displayName}:`, e.message);
+            break; // non-429 error, don't retry
+          }
+        }
+      }
+      if (!loaded) console.warn(`Gave up loading ${list.displayName} after 5 attempts`);
+    }
+
+    renderListTabs();
+    renderTasks();
+    updateStats();
+
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    // Debug info
+    console.log('Lists loaded:', taskLists.length, 'Tasks loaded:', allTasks.length);
+    // Cache the results
+    try {
+      localStorage.setItem('tb_tasks_cache', JSON.stringify({ tasks: allTasks, lists: taskLists }));
+      localStorage.setItem('tb_tasks_time', Date.now().toString());
+    } catch(e) {}
+    
+    if (taskLists.length === 0) {
+      document.getElementById('task-grid').innerHTML = `<div class="error-box">
+        <strong>Signed in successfully but no task lists found.</strong><br>
+        Account: ${document.getElementById('user-name').textContent}<br><br>
+        This may mean the account signed in does not have any Microsoft To Do lists,
+        or the wrong account was used.<br><br>
+        <a href="#" onclick="signOut()" style="color:var(--warn)">Switch Account</a>
+      </div>`;
+    }
+
+  } catch(err) {
+    // Try to get more detail from the error
+    let detail = err.message;
+    try {
+      const res2 = await fetch('https://graph.microsoft.com/v1.0/me/todo/lists', {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const errJson = await res2.json();
+      detail = JSON.stringify(errJson, null, 2);
+    } catch(e2) {}
+
+    grid.innerHTML = `<div class="error-box">
+      <strong>Could not load tasks.</strong><br><br>
+      <code style="font-size:0.75rem;white-space:pre-wrap;word-break:break-all">${detail}</code><br><br>
+      <a href="#" onclick="signIn()" style="color:var(--warn)">Sign in again</a>
+    </div>`;
+  }
+}
+
+function renderListTabs() {
+  const bar = document.getElementById('list-bar');
+  bar.innerHTML = `<button class="list-tab ${currentFilter==='all'?'active':''}" onclick="filterList('all', this)">All Lists</button>`;
+  taskLists.forEach(list => {
+    const btn = document.createElement('button');
+    btn.className = `list-tab ${currentFilter===list.id?'active':''}`;
+    btn.textContent = list.displayName;
+    btn.onclick = function() { filterList(list.id, this); };
+    bar.appendChild(btn);
+  });
+  document.getElementById('stat-lists').textContent = taskLists.length;
+}
+
+function filterList(id, btn) {
+  currentFilter = id;
+  document.querySelectorAll('.list-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const grid = document.getElementById('task-grid');
+  if (id === 'all') {
+    grid.classList.remove('single-list');
+  } else {
+    grid.classList.add('single-list');
+  }
+  renderTasks();
+  updateStats();
+}
+
+// People shown in the overview columns (in order)
+const OVERVIEW_PEOPLE = ['blake', 'justin', 'dorian', 'carmen', 'tyler', 'kathy', 'marco'];
+
+// Verification config
+// OPERATOR_PIN_PEOPLE: operator checks freely, verifier enters PIN 308 to complete
+const OPERATOR_PIN_PEOPLE = ['blake', 'justin', 'dorian', 'carmen', 'tyler'];
+const OPERATOR_VERIFIER_PIN = '308';
+// SELF_PIN_PEOPLE: person checks freely, verifier enters PIN 0070 to complete
+const SELF_PIN_PEOPLE = ['kathy', 'marco'];
+const SELF_VERIFIER_PIN = '0070';
+
+function renderTasks() {
+  const grid = document.getElementById('task-grid');
+
+  if (currentFilter === 'all') {
+    grid.classList.remove('single-list');
+    grid.innerHTML = renderOverview();
+  } else {
+    grid.classList.add('single-list');
+    const filtered = allTasks.filter(t => t.listId === currentFilter && t.status !== 'completed' && localChecked[t.id] !== 'verified');
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="empty-icon">✅</div><p>No tasks here!</p></div>`;
+      return;
+    }
+    let html = `<div class="section-header">TASKS <div class="section-line"></div> ${filtered.length}</div>`;
+    filtered.forEach((t, i) => { html += taskCard(t, i * 30); });
+    grid.innerHTML = html;
+  }
+}
+
+function renderOverview() {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  let html = `<div class="overview-date">${dateStr}</div><div class="overview-columns">`;
+
+  OVERVIEW_PEOPLE.forEach(personKey => {
+    const list = taskLists.find(l => l.displayName.toLowerCase().trim() === personKey);
+
+    if (!list) {
+      html += `
+        <div class="overview-col">
+          <div class="overview-col-header">
+            <div class="overview-avatar">${personKey.charAt(0).toUpperCase()}</div>
+            <div class="overview-col-name">${personKey.charAt(0).toUpperCase() + personKey.slice(1)}</div>
+            <div class="overview-col-count">0 tasks</div>
+          </div>
+          <div class="overview-col-tasks"><div class="col-empty">No tasks today</div></div>
+        </div>`;
+      return;
+    }
+
+    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed');
+    const count = tasks.length;
+    const checkedCount = tasks.filter(t => !!localChecked[t.id]).length;
+
+    html += `
+      <div class="overview-col">
+        <div class="overview-col-header">
+          <div class="overview-avatar">${list.displayName.charAt(0).toUpperCase()}</div>
+          <div class="overview-col-name">${escHtml(list.displayName)}</div>
+          <div class="overview-col-count">${count} task${count !== 1 ? 's' : ''}${checkedCount > 0 ? ' · ' + checkedCount + ' ✓' : ''}</div>
+        </div>
+        <div class="overview-col-tasks">
+          ${count === 0
+            ? '<div class="col-empty">All clear!</div>'
+            : tasks.map((t, i) => overviewTaskCard(t, i)).join('')}
+        </div>
+      </div>`;
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function overviewTaskCard(task, index) {
+  const state = localChecked[task.id] || null;
+  const operatorDone = state === 'operator' || state === 'self' || state === 'verified';
+  const verified = state === 'verified';
+  const listName = task.listName.toLowerCase().trim();
+  const isSelf = SELF_PIN_PEOPLE.includes(listName);
+  const operatorLabel = isSelf ? 'Done' : 'Operator';
+  const dueHtml = task.dueDateTime
+    ? `<div class="ov-due">⏰ ${new Date(task.dueDateTime.dateTime).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</div>`
+    : '';
+
+  return `
+    <div class="ov-task ${verified ? 'ov-verified' : operatorDone ? 'ov-operator-done' : ''}" style="animation-delay:${index * 40}ms">
+      <div class="ov-checks">
+        <div class="ov-check-wrap" onclick="toggleLocal('${task.id}')">
+          <div class="ov-check ${operatorDone ? 'ov-check-on' : ''}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="ov-check-label">${operatorLabel}</div>
+        </div>
+        <div class="ov-check-wrap ${!operatorDone ? 'ov-check-disabled' : ''}" onclick="verifierCheck('${task.id}', event)">
+          <div class="ov-check ${verified ? 'ov-check-verified' : ''}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="ov-check-label">Verify</div>
+        </div>
+      </div>
+      <div class="ov-body">
+        <div class="ov-title ${verified ? 'ov-title-done' : ''}">${escHtml(task.title || 'Untitled')}</div>
+        ${dueHtml}
+      </div>
+    </div>`;
+}
+
+function taskCard(task, delay) {
+  const state = localChecked[task.id] || null;
+  const operatorDone = state === 'operator' || state === 'self' || state === 'verified';
+  const verified = state === 'verified';
+  const listName = task.listName.toLowerCase().trim();
+  const isSelf = SELF_PIN_PEOPLE.includes(listName);
+  const operatorLabel = isSelf ? 'Done' : 'Operator';
+  const dueHtml = task.dueDateTime
+    ? `<span class="task-due">⏰ ${new Date(task.dueDateTime.dateTime).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</span>`
+    : '';
+
+  return `
+    <div class="task-card ${verified ? 'done' : ''}" style="animation-delay:${delay}ms">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center;flex-shrink:0">
+        <div class="ov-check-wrap" onclick="toggleLocal('${task.id}')">
+          <div class="ov-check ${operatorDone ? 'ov-check-on' : ''}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="ov-check-label">${operatorLabel}</div>
+        </div>
+        <div class="ov-check-wrap ${!operatorDone ? 'ov-check-disabled' : ''}" onclick="verifierCheck('${task.id}', event)">
+          <div class="ov-check ${verified ? 'ov-check-verified' : ''}">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="ov-check-label">Verify</div>
+        </div>
+      </div>
+      <div class="task-body">
+        <div class="task-title ${verified ? '' : ''}">${escHtml(task.title || 'Untitled')}</div>
+        <div class="task-meta">
+          <span class="task-list-badge">${escHtml(task.listName)}</span>
+          ${dueHtml}
+        </div>
+      </div>
+    </div>`;
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updateStats() {
+  const base = currentFilter === 'all' ? allTasks : allTasks.filter(t => t.listId === currentFilter);
+  const visible = base.filter(t => t.status !== 'completed');
+  const total = visible.length;
+  const done = visible.filter(t => !!localChecked[t.id]).length;
+  const remaining = total - done;
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-done').textContent = done;
+  document.getElementById('stat-remaining').textContent = remaining;
+  document.getElementById('header-progress').textContent = `${done} / ${total} checked`;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-pct').textContent = pct + '%';
+  document.getElementById('stat-lists').textContent = taskLists.length;
+}
+
+async function refreshTasks() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  // Always force fresh data when user clicks refresh
+  try { localStorage.removeItem('tb_tasks_cache'); localStorage.removeItem('tb_tasks_time'); } catch(e) {}
+  await loadAllTasks(true);
+  btn.classList.remove('spinning');
+  showToast('Tasks refreshed from Microsoft!');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function getListNameForTask(taskId) {
+  const task = allTasks.find(t => t.id === taskId);
+  if (!task) return '';
+  return task.listName.toLowerCase().trim();
+}
+
+function toggleLocal(taskId) {
+  // Called when operator/person clicks their checkbox
+  const state = localChecked[taskId] || null;
+  if (state === 'operator' || state === 'self') {
+    // Uncheck — also clears any verification
+    localChecked[taskId] = null;
+  } else if (state === 'verified') {
+    // Already fully verified — allow uncheck
+    localChecked[taskId] = null;
+  } else {
+    // First check
+    const listName = getListNameForTask(taskId);
+    if (SELF_PIN_PEOPLE.includes(listName)) {
+      localChecked[taskId] = 'self';
+    } else {
+      localChecked[taskId] = 'operator';
+    }
+  }
+  renderTasks();
+  updateStats();
+  const s = localChecked[taskId];
+  if (!s) showToast('↩ Unmarked');
+  else showToast('✓ Awaiting verification');
+}
+
+function verifierCheck(taskId, event) {
+  event.stopPropagation();
+  const state = localChecked[taskId];
+  // Only allow verifier check if operator/self has checked first
+  if (state !== 'operator' && state !== 'self') {
+    showToast('⚠ Operator must check first');
+    return;
+  }
+  if (state === 'verified') {
+    // Un-verify
+    const listName = getListNameForTask(taskId);
+    localChecked[taskId] = SELF_PIN_PEOPLE.includes(listName) ? 'self' : 'operator';
+    renderTasks();
+    updateStats();
+    showToast('↩ Verification removed');
+    return;
+  }
+  // Prompt for PIN
+  showPinModal(taskId);
+}
+
+function showPinModal(taskId) {
+  const listName = getListNameForTask(taskId);
+  const correctPin = SELF_PIN_PEOPLE.includes(listName) ? SELF_VERIFIER_PIN : OPERATOR_VERIFIER_PIN;
+  const task = allTasks.find(t => t.id === taskId);
+  const taskTitle = task ? task.title : 'this task';
+
+  // Remove any existing modal
+  const existing = document.getElementById('pin-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'pin-modal';
+  modal.innerHTML = `
+    <div class="pin-backdrop" onclick="closePinModal()"></div>
+    <div class="pin-box">
+      <div class="pin-title">VERIFICATION REQUIRED</div>
+      <div class="pin-task">${taskTitle.substring(0, 60)}${taskTitle.length > 60 ? '...' : ''}</div>
+      <div class="pin-label">Enter Verifier PIN</div>
+      <input class="pin-input" id="pin-input" type="password" maxlength="6" placeholder="••••" autofocus
+        oninput="checkPinLength('${taskId}', '${correctPin}')"
+        onkeydown="if(event.key==='Enter') submitPin('${taskId}','${correctPin}')" />
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-buttons">
+        <button class="pin-btn-cancel" onclick="closePinModal()">Cancel</button>
+        <button class="pin-btn-submit" onclick="submitPin('${taskId}','${correctPin}')">Verify</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  setTimeout(() => document.getElementById('pin-input') && document.getElementById('pin-input').focus(), 100);
+}
+
+function checkPinLength(taskId, correctPin) {
+  const val = document.getElementById('pin-input').value;
+  if (val.length === correctPin.length) submitPin(taskId, correctPin);
+}
+
+function submitPin(taskId, correctPin) {
+  const input = document.getElementById('pin-input');
+  if (!input) return;
+  const entered = input.value.trim();
+  if (entered === correctPin) {
+    localChecked[taskId] = 'verified';
+    closePinModal();
+    renderTasks();
+    updateStats();
+    showToast('✅ Task verified & complete!');
+  } else {
+    document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
+    input.value = '';
+    input.focus();
+    // Shake animation
+    input.style.animation = 'none';
+    setTimeout(() => { input.style.animation = 'shake 0.4s ease'; }, 10);
+  }
+}
+
+function closePinModal() {
+  const modal = document.getElementById('pin-modal');
+  if (modal) modal.remove();
+}
+
+function signOut() {
+  // Clear all saved tokens
+  try { localStorage.removeItem('tb_tok'); localStorage.removeItem('tb_exp'); } catch(e) {}
+  try { sessionStorage.removeItem('tb_tok'); sessionStorage.removeItem('tb_exp'); } catch(e) {}
+  document.cookie = 'tb_tok=;max-age=0;path=/';
+  document.cookie = 'tb_exp=;max-age=0;path=/';
+  accessToken = null;
+  // Sign out from Microsoft then redirect back to sign-in
+  const logoutUrl = `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/logout?post_logout_redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+  window.location.href = logoutUrl;
+}
+
+// ── START ────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
