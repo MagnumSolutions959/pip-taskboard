@@ -1545,9 +1545,11 @@ function escHtml(str) {
 
 function updateStats() {
   const base = currentFilter === 'all' ? allTasks : allTasks.filter(t => t.listId === currentFilter);
-  const visible = base.filter(t => t.status !== 'completed' && shouldShowTask(t) && localChecked[t.id] !== 'verified');
-  const total = visible.length;
-  const done = visible.filter(t => !!localChecked[t.id]).length;
+  // All tasks visible today (including verified ones for counting)
+  const todayTasks = base.filter(t => t.status !== 'completed' && shouldShowTask(t));
+  const total = todayTasks.length;
+  // Completed = operator checked OR verified
+  const done = todayTasks.filter(t => !!localChecked[t.id]).length;
   const remaining = total - done;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
