@@ -356,6 +356,73 @@
   }
 
   /* Task grid */
+  /* Per-person stats row */
+  .person-stats-row {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 8px;
+    margin: 0 0 16px 0;
+  }
+  .person-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .person-stat-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .person-stat-pct {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .person-stat-pct.pct-warn { color: var(--warn); }
+  .person-stat-pct.pct-mid { color: #f59e0b; }
+  .person-stat-detail {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .person-stat-bar {
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+  .person-stat-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+  .export-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .export-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
   #task-grid {
     display: flex;
     flex-direction: column;
@@ -1057,6 +1124,13 @@
       <div class="progress-pct" id="progress-pct">0%</div>
     </div>
 
+    <div class="export-bar">
+      <button class="export-btn" onclick="exportCSV()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Daily Report
+      </button>
+    </div>
+    <div class="person-stats-row" id="person-stats-row"></div>
     <div id="task-grid">
       <div id="loading">
         <div class="spinner"></div>
@@ -1236,6 +1310,7 @@ async function loadAllTasks(forceRefresh = false) {
         renderListTabs();
         renderTasks();
         updateStats();
+  updatePersonStats();
         document.getElementById('last-updated').textContent =
           'Updated ' + new Date(cachedTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) + ' (cached)';
         return;
@@ -1284,6 +1359,7 @@ async function loadAllTasks(forceRefresh = false) {
     renderListTabs();
     renderTasks();
     updateStats();
+  updatePersonStats();
 
     document.getElementById('last-updated').textContent =
       'Updated ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -1350,14 +1426,15 @@ function filterList(id, btn) {
   }
   renderTasks();
   updateStats();
+  updatePersonStats();
 }
 
 // People shown in the overview columns (in order)
-const OVERVIEW_PEOPLE = ['blake', 'justin', 'dorian', 'carmen', 'tyler', 'kathy', 'marco'];
+const OVERVIEW_PEOPLE = ['blake', 'shelby', 'justin', 'dorian', 'carmen', 'tyler', 'kathy', 'marco'];
 
 // Verification config
 // OPERATOR_PIN_PEOPLE: operator checks freely, verifier enters PIN 308 to complete
-const OPERATOR_PIN_PEOPLE = ['blake', 'justin', 'dorian', 'carmen', 'tyler'];
+const OPERATOR_PIN_PEOPLE = ['blake', 'shelby', 'justin', 'dorian', 'carmen', 'tyler'];
 const OPERATOR_VERIFIER_PIN = '308';
 // SELF_PIN_PEOPLE: person checks freely, verifier enters PIN 0070 to complete
 const SELF_PIN_PEOPLE = ['kathy', 'marco'];
@@ -1543,6 +1620,82 @@ function escHtml(str) {
   return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+function updatePersonStats() {
+  const row = document.getElementById('person-stats-row');
+  if (!row) return;
+  let html = '';
+  OVERVIEW_PEOPLE.forEach(personKey => {
+    const list = taskLists.find(l => l.displayName.toLowerCase().trim() === personKey);
+    if (!list) return;
+    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed' && shouldShowTask(t));
+    const total = tasks.length;
+    const verified = tasks.filter(t => localChecked[t.id] === 'verified').length;
+    const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
+    const pctClass = pct === 100 ? '' : pct >= 50 ? 'pct-mid' : 'pct-warn';
+    const name = personKey.charAt(0).toUpperCase() + personKey.slice(1);
+    html += `
+      <div class="person-stat-card">
+        <div class="person-stat-name">${name}</div>
+        <div class="person-stat-pct ${pctClass}">${total === 0 ? '—' : pct + '%'}</div>
+        <div class="person-stat-detail">${verified} / ${total} verified</div>
+        <div class="person-stat-bar">
+          <div class="person-stat-bar-fill" style="width:${pct}%"></div>
+        </div>
+      </div>`;
+  });
+  row.innerHTML = html;
+}
+
+function exportCSV() {
+  const today = new Date();
+  const dateStr = today.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const timeStr = today.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  let rows = [['Date', 'Time', 'Person', 'Task', 'Status', 'Verified']];
+
+  OVERVIEW_PEOPLE.forEach(personKey => {
+    const list = taskLists.find(l => l.displayName.toLowerCase().trim() === personKey);
+    if (!list) return;
+    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed' && shouldShowTask(t));
+    const name = personKey.charAt(0).toUpperCase() + personKey.slice(1);
+    if (tasks.length === 0) {
+      rows.push([dateStr, timeStr, name, 'No tasks today', 'N/A', 'N/A']);
+    } else {
+      tasks.forEach(t => {
+        const state = localChecked[t.id] || null;
+        const status = state === 'verified' ? 'Verified' : state === 'operator' || state === 'self' ? 'Operator Checked' : 'Pending';
+        const verified = state === 'verified' ? 'Yes' : 'No';
+        rows.push([dateStr, timeStr, name, t.title || 'Untitled', status, verified]);
+      });
+    }
+  });
+
+  // Add summary rows
+  rows.push([]);
+  rows.push(['SUMMARY']);
+  rows.push(['Person', 'Total Tasks', 'Verified', 'Completion %']);
+  OVERVIEW_PEOPLE.forEach(personKey => {
+    const list = taskLists.find(l => l.displayName.toLowerCase().trim() === personKey);
+    if (!list) return;
+    const tasks = allTasks.filter(t => t.listId === list.id && t.status !== 'completed' && shouldShowTask(t));
+    const total = tasks.length;
+    const verified = tasks.filter(t => localChecked[t.id] === 'verified').length;
+    const pct = total > 0 ? Math.round((verified / total) * 100) + '%' : 'N/A';
+    const name = personKey.charAt(0).toUpperCase() + personKey.slice(1);
+    rows.push([name, total, verified, pct]);
+  });
+
+  const csv = rows.map(r => r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'PIP-TaskBoard-' + today.toISOString().substring(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📥 Report downloaded!');
+}
+
 function updateStats() {
   const base = currentFilter === 'all' ? allTasks : allTasks.filter(t => t.listId === currentFilter);
   // All tasks visible today (including verified ones for counting)
@@ -1605,6 +1758,7 @@ function toggleLocal(taskId) {
   }
   renderTasks();
   updateStats();
+  updatePersonStats();
   const s = localChecked[taskId];
   if (!s) showToast('↩ Unmarked');
   else showToast('✓ Awaiting verification');
@@ -1624,6 +1778,7 @@ function verifierCheck(taskId, event) {
     localChecked[taskId] = SELF_PIN_PEOPLE.includes(listName) ? 'self' : 'operator';
     renderTasks();
     updateStats();
+  updatePersonStats();
     showToast('↩ Verification removed');
     return;
   }
@@ -1676,6 +1831,7 @@ function submitPin(taskId, correctPin) {
     closePinModal();
     renderTasks();
     updateStats();
+  updatePersonStats();
     showToast('✅ Task verified & complete!');
   } else {
     document.getElementById('pin-error').textContent = 'Incorrect PIN. Try again.';
