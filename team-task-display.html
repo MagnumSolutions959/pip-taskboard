@@ -1340,9 +1340,17 @@ async function loadAllTasks(forceRefresh = false) {
         try {
           const delay = attempt === 1 ? 1000 : attempt * 3000; // longer wait on retries
           await new Promise(r => setTimeout(r, delay));
-          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200`);
-          const tasks = (data.value || []).map(t => ({ ...t, listId: list.id, listName: list.displayName }));
-          allTasks = allTasks.concat(tasks);
+          // Fetch all pages of tasks - get all statuses including notStarted
+          let nextUrl = `/me/todo/lists/${list.id}/tasks?$top=200&$filter=status ne 'completed'`;
+          let listTasks = [];
+          while (nextUrl) {
+            const data = await graphGet(nextUrl);
+            const page = (data.value || []).map(t => ({ ...t, listId: list.id, listName: list.displayName }));
+            listTasks = listTasks.concat(page);
+            // Follow pagination
+            nextUrl = data['@odata.nextLink'] ? data['@odata.nextLink'].replace('https://graph.microsoft.com/v1.0', '') : null;
+          }
+          allTasks = allTasks.concat(listTasks);
           loaded = true;
           break;
         } catch(e) {
