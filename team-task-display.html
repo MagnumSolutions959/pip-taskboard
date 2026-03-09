@@ -1340,7 +1340,7 @@ async function loadAllTasks(forceRefresh = false) {
         try {
           const delay = attempt === 1 ? 1000 : attempt * 3000; // longer wait on retries
           await new Promise(r => setTimeout(r, delay));
-          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200`);
+          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200&$select=id,title,status,dueDateTime,createdDateTime,recurrence,importance,body`);
           const tasks = (data.value || []).map(t => ({ ...t, listId: list.id, listName: list.displayName }));
           allTasks = allTasks.concat(tasks);
           loaded = true;
