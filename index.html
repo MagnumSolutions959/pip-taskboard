@@ -1340,7 +1340,7 @@ async function loadAllTasks(forceRefresh = false) {
         try {
           const delay = attempt === 1 ? 1000 : attempt * 3000; // longer wait on retries
           await new Promise(r => setTimeout(r, delay));
-          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200&$select=id,title,status,dueDateTime,createdDateTime,recurrence,importance,body`);
+          const data = await graphGet(`/me/todo/lists/${list.id}/tasks?$top=200`);
           const tasks = (data.value || []).map(t => ({ ...t, listId: list.id, listName: list.displayName }));
           allTasks = allTasks.concat(tasks);
           loaded = true;
@@ -1470,15 +1470,7 @@ function shouldShowTask(task) {
     return dueDateStr <= todayStr;
   }
 
-  // No due date — show if created today or earlier
-  if (task.createdDateTime) {
-    const created = new Date(task.createdDateTime);
-    const createdStr = created.getFullYear() + '-' +
-      String(created.getMonth() + 1).padStart(2, '0') + '-' +
-      String(created.getDate()).padStart(2, '0');
-    return createdStr <= todayStr;
-  }
-
+  // No due date — always show (My Day tasks or tasks without dates)
   return true;
 }
 
